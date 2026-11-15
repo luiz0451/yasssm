@@ -1,16 +1,18 @@
 package host
 
 import (
-	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
+
+// ErrUnsupported marks a feature this OS doesn't have (systemd timers on macOS).
+var ErrUnsupported = errors.New("not supported on " + runtime.GOOS)
 
 type System struct {
 	Host, Uptime, Load string
@@ -23,30 +25,23 @@ type System struct {
 
 const na = "n/a"
 
-// ReadSystem reads Linux /proc; fields it cannot read show "n/a".
+// ReadSystem reads uptime, load, memory and disk; fields it cannot read show "n/a".
+// The OS-specific readers are in system_linux.go and system_darwin.go.
 func ReadSystem() System {
 	s := System{CPUs: runtime.NumCPU(), Uptime: na, Load: na, MemUsed: na, MemTotal: na, DiskUsed: na, DiskSize: na}
 	s.Host, _ = os.Hostname()
-
-	if b, err := os.ReadFile("/proc/uptime"); err == nil {
-		if f := strings.Fields(string(b)); len(f) > 0 {
-			if secs, err := strconv.ParseFloat(f[0], 64); err == nil {
-				s.Uptime = FmtDuration(time.Duration(secs) * time.Second)
-			}
-		}
+	if d, ok := readUptime(); ok {
+		s.Uptime = FmtDuration(d)
 	}
-	if b, err := os.ReadFile("/proc/loadavg"); err == nil {
-		if f := strings.Fields(string(b)); len(f) >= 3 {
-			s.Load = strings.Join(f[:3], " ")
-		}
+	if l, ok := readLoad(); ok {
+		s.Load = l
 	}
-	if total, avail, ok := meminfo(); ok {
-		used := total - avail
+	if total, used, ok := readMemory(); ok {
 		s.MemUsed, s.MemTotal = fmtBytes(used), fmtBytes(total)
 		s.MemPct = int(used * 100 / total)
 	}
 	var st syscall.Statfs_t
-	if err := syscall.Statfs("/", &st); err == nil {
+	if err := syscall.Statfs(diskPath, &st); err == nil {
 		bs := uint64(st.Bsize)
 		size := st.Blocks * bs
 		used := size - st.Bfree*bs
@@ -57,32 +52,6 @@ func ReadSystem() System {
 		}
 	}
 	return s
-}
-
-func meminfo() (total, avail uint64, ok bool) {
-	f, err := os.Open("/proc/meminfo")
-	if err != nil {
-		return 0, 0, false
-	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		k, v, found := strings.Cut(sc.Text(), ":")
-		if !found {
-			continue
-		}
-		n, err := strconv.ParseUint(strings.TrimSuffix(strings.TrimSpace(v), " kB"), 10, 64)
-		if err != nil {
-			continue
-		}
-		switch k {
-		case "MemTotal":
-			total = n * 1024
-		case "MemAvailable":
-			avail = n * 1024
-		}
-	}
-	return total, avail, total > 0
 }
 
 func fmtBytes(n uint64) string {
@@ -114,29 +83,9 @@ func FmtDuration(d time.Duration) string {
 	return fmt.Sprintf("%ds", int(d.Seconds()))
 }
 
+// Unit is a service: a systemd unit on Linux, a launchd job on macOS.
 type Unit struct {
 	Name, Load, Active, Sub, Description string
-}
-
-// ListUnits lists loaded service units (running, exited or failed).
-func ListUnits(ctx context.Context, user bool) ([]Unit, error) {
-	args := []string{"list-units", "--type=service", "--no-pager", "--plain", "--no-legend"}
-	if user {
-		args = append([]string{"--user"}, args...)
-	}
-	out, err := run(ctx, "systemctl", args...)
-	if err != nil {
-		return nil, err
-	}
-	var units []Unit
-	for line := range strings.Lines(out) {
-		f := strings.Fields(line)
-		if len(f) < 4 {
-			continue
-		}
-		units = append(units, Unit{f[0], f[1], f[2], f[3], strings.Join(f[4:], " ")})
-	}
-	return units, nil
 }
 
 func ReadCrontab(ctx context.Context) (string, error) {

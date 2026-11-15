@@ -5,7 +5,7 @@ TAILWIND := bin/tailwindcss
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: gen build build-linux test lint run site
+.PHONY: gen build build-linux build-darwin test lint run site
 
 $(TAILWIND):
 	mkdir -p bin
@@ -19,9 +19,12 @@ gen: $(TAILWIND)
 build: gen
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/yasssm .
 
-# The server is Debian amd64.
+# Linux servers (amd64) and Apple silicon Macs.
 build-linux: gen
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/yasssm-linux-amd64 .
+
+build-darwin: gen
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/yasssm-darwin-arm64 .
 
 test:
 	go test ./...
@@ -34,7 +37,7 @@ run: build
 	./bin/yasssm
 
 # Project website (GitHub Pages) → site/dist, built from the app's own components and theme.
-site: $(TAILWIND)
+site: gen
 	go tool templ generate
 	rm -rf site/dist && mkdir -p site/dist/assets/css
 	$(TAILWIND) -i site/site.css -o site/dist/assets/css/site.css --minify

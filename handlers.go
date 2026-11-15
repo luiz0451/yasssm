@@ -429,6 +429,9 @@ func (a *app) services(w http.ResponseWriter, r *http.Request) {
 			l.Title = "User services"
 		}
 		units, err := host.ListUnits(ctx, user)
+		if errors.Is(err, host.ErrUnsupported) {
+			continue
+		}
 		if err != nil {
 			l.Err = err.Error()
 		}
@@ -460,7 +463,11 @@ func (a *app) cron(w http.ResponseWriter, r *http.Request) {
 		if user {
 			g.Title = "User timers"
 		}
-		if g.Timers, err = host.ListTimers(ctx, user); err != nil {
+		g.Timers, err = host.ListTimers(ctx, user)
+		if errors.Is(err, host.ErrUnsupported) {
+			continue
+		}
+		if err != nil {
 			g.Err = err.Error()
 		}
 		d.Timers = append(d.Timers, g)

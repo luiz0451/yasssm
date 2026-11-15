@@ -1,0 +1,114 @@
+package site
+
+import "yasssm/components/card"
+
+templ Docs() {
+	@shell("Docs · yasssm", "docs.html") {
+		<div class="grid gap-8 md:grid-cols-[12rem_1fr] md:gap-10">
+			<nav class="md:sticky md:top-12 md:self-start" aria-label="Docs">
+				<div class="flex items-center justify-between gap-2 md:flex-col md:items-start md:gap-4">
+					<a href="./" class="flex items-center gap-2">
+						<span class="text-2xl leading-none" aria-hidden="true">🐍</span>
+						<span class="text-lg font-semibold">yasssm</span>
+					</a>
+					@sourceButton()
+				</div>
+				<ul class="mt-6 hidden space-y-1 text-sm text-muted-foreground md:block">
+					@toc("requirements", "Requirements")
+					@toc("install", "Install")
+					@toc("access", "Access")
+					@toc("using", "Using it")
+					@toc("configuration", "Configuration")
+					@toc("macos", "macOS notes")
+					@toc("security", "Security")
+				</ul>
+			</nav>
+			<article class="min-w-0 space-y-10">
+				<h1 class="font-heading text-3xl font-semibold tracking-tight">Docs</h1>
+				@section("requirements", "Requirements") {
+					<ul class="list-disc space-y-1 pl-5">
+						<li>A Linux server with systemd (amd64 or arm64), or a Mac.</li>
+						<li>Docker with the Compose plugin, usable by your user (the <code>docker</code> group on Linux; Docker Desktop, OrbStack or Colima on macOS).</li>
+						<li>An authenticator app on your phone for the login codes.</li>
+					</ul>
+				}
+				@section("install", "Install") {
+					<p>One line installs the latest release, shows a QR code to scan with your authenticator app, and starts yasssm as a service on <code>127.0.0.1:8090</code>. Run it again to update.</p>
+					<h3 class="font-medium text-foreground">Linux</h3>
+					@code(linuxOneLiner)
+					<p>A systemd user service; lingering is turned on so it keeps running after you log out and starts at boot.</p>
+					<h3 class="font-medium text-foreground">macOS</h3>
+					@code(macOneLiner)
+					<p>A launchd agent that starts when you log in. On a Mac used as a server, turn on automatic login so it starts after a reboot. Logs go to <code>~/Library/Logs/yasssm.log</code>.</p>
+					<p><code>yasssm totp-qr</code> shows the QR code again (for a second phone); <code>yasssm totp-init -force</code> makes a new secret.</p>
+					<h3 class="font-medium text-foreground">From source</h3>
+					<p>Needs Go; <code>make</code> downloads the Tailwind CLI the first time.</p>
+					@code(linuxInstall)
+					<p>On macOS use <code>make build-darwin</code> and <code>deploy/com.yasssm.plist</code>:</p>
+					@code(macInstall)
+				}
+				@section("access", "Access") {
+					<p>yasssm listens on <code>127.0.0.1:8090</code> only. Publish it on your tailnet with Tailscale, so only your devices reach it, over HTTPS:</p>
+					@code("tailscale serve --service=svc:yasssm --https=443 --bg http://127.0.0.1:8090")
+					<p>The server must be a tagged node, and your user its operator (<code>sudo tailscale set --operator=$USER</code>). Approve <code>svc:yasssm</code> once in the Tailscale admin console; it is then at <code>https://yasssm.&lt;your-tailnet&gt;.ts.net</code>. Add it to your phone's home screen to open it like an app.</p>
+				}
+				@section("using", "Using it") {
+					<ul class="list-disc space-y-1 pl-5">
+						<li><b class="font-medium text-foreground">Stacks</b>: every folder under <code>YASSSM_STACKS_DIR</code> with a compose file is a stack. Up, restart, stop, pull and recreate it; start, restart, stop and read the logs of each container.</li>
+						<li><b class="font-medium text-foreground">Services</b>: systemd services on Linux (failed first); your launchd agents on macOS.</li>
+						<li><b class="font-medium text-foreground">Cron</b>: your crontab, the system cron files, and systemd timers on Linux, each with the code it runs. Read only.</li>
+						<li><b class="font-medium text-foreground">Jobs</b>: every action shows its commands on a confirmation page first, then runs in the background; its page shows the output until it ends.</li>
+					</ul>
+				}
+				@section("configuration", "Configuration") {
+					<p>Environment variables, set in the service file:</p>
+					@card.Card() {
+						@card.Content() {
+							<dl class="divide-y text-sm">
+								@setting("YASSSM_ADDR", "127.0.0.1:8090", "Address to listen on. Keep it on loopback.")
+								@setting("YASSSM_STACKS_DIR", "$HOME", "Folder whose subfolders are your Compose stacks.")
+								@setting("YASSSM_TOTP_FILE", "config dir/yasssm/totp", "The login secret: ~/.config on Linux, ~/Library/Application Support on macOS.")
+								@setting("YASSSM_SECURE_COOKIE", "unset", "Set to 1 behind HTTPS (Tailscale serve) to mark the session cookie Secure.")
+							</dl>
+						}
+					}
+				}
+				@section("macos", "macOS notes") {
+					<ul class="list-disc space-y-1 pl-5">
+						<li>Services lists your own launchd agents; Apple's jobs and running apps are hidden. System daemons need root, so they are not shown.</li>
+						<li>There are no systemd timers; Cron shows your crontab and <code>/etc/periodic</code>.</li>
+						<li>Disk is the data volume (<code>/System/Volumes/Data</code>), the one that fills up.</li>
+					</ul>
+				}
+				@section("security", "Security") {
+					<ul class="list-disc space-y-1 pl-5">
+						<li>Docker access is as good as root: never expose yasssm to the internet, not even with Tailscale Funnel.</li>
+						<li>Login is a 6-digit TOTP code. Reused codes are rejected, and 5 wrong codes lock the login for 5 minutes.</li>
+						<li>The pages run no JavaScript; the content security policy blocks scripts. Forms are protected against cross-site requests.</li>
+					</ul>
+				}
+			</article>
+		</div>
+	}
+}
+
+templ toc(id, title string) {
+	<li><a class="hover:text-foreground" href={ templ.SafeURL("#" + id) }>{ title }</a></li>
+}
+
+templ section(id, title string) {
+	<section id={ id } class="scroll-mt-8 space-y-3 text-muted-foreground [&_code]:font-mono [&_code]:text-sm [&_code]:text-foreground">
+		<h2 class="font-heading text-xl font-semibold text-foreground">{ title }</h2>
+		{ children... }
+	</section>
+}
+
+templ setting(name, def, text string) {
+	<div class="grid gap-1 py-3 sm:grid-cols-[14rem_1fr]">
+		<dt class="font-mono text-foreground">{ name }</dt>
+		<dd>
+			{ text }
+			<span class="text-muted-foreground">Default: <code class="font-mono">{ def }</code>.</span>
+		</dd>
+	</div>
+}

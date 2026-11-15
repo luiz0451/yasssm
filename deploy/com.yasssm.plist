@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS LaunchAgent: ~/Library/LaunchAgents/com.yasssm.plist. HOME below is replaced by your home
+  folder on install (see README). Runs while you are logged in; stays inactive until
+  `yasssm totp-init` has created the secret.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.yasssm</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>HOME/.local/bin/yasssm</string>
+		<string>serve</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>YASSSM_ADDR</key>
+		<string>127.0.0.1:8090</string>
+		<key>YASSSM_SECURE_COOKIE</key>
+		<string>1</string>
+		<!-- launchd starts with a bare PATH; docker lives in one of these. -->
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>StandardErrorPath</key>
+	<string>HOME/Library/Logs/yasssm.log</string>
+</dict>
+</plist>

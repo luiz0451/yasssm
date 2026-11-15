@@ -1,15 +1,15 @@
 # 🐍 yasssm
 
-Website: [yasssm.luizlab.com.br](https://yasssm.luizlab.com.br)
+Website and docs: [yasssm.luizlab.com.br](https://yasssm.luizlab.com.br)
 
-Yet Another Simple Self-hosted Server Manager: a small web panel for one Linux server. One Go binary, server-rendered pages, no JavaScript, TOTP login.
+Yet Another Simple Self-hosted Server Manager: manage your Linux or macOS server from any device on your private network. One Go binary, server-rendered pages, no JavaScript, TOTP login.
 
 It shows and manages:
 
 - Docker Compose stacks and their containers: start, stop, restart, pull and recreate, logs
 - uptime, load, memory and disk
-- systemd services (read only)
-- cron: your crontab, the system cron files and systemd timers, with the code they run (read only)
+- services: systemd on Linux, your launchd agents on macOS (read only)
+- cron: your crontab, the system cron files and (Linux) systemd timers, with the code they run (read only)
 
 Every action asks for confirmation and shows the exact commands before running them.
 
@@ -19,12 +19,15 @@ Needs Go. `make` downloads the Tailwind CLI on first use.
 
 ```sh
 make build-linux   # bin/yasssm-linux-amd64
+make build-darwin  # bin/yasssm-darwin-arm64
 make test lint
 ```
 
 ## Install
 
-Run it as your user. The user must be in the `docker` group.
+Run it as your user, who must be able to use `docker`.
+
+Linux (systemd user service):
 
 ```sh
 install -m 755 bin/yasssm-linux-amd64 ~/.local/bin/yasssm
@@ -33,6 +36,15 @@ cp deploy/yasssm.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now yasssm
 loginctl enable-linger  # keep it running after logout and start it at boot
+```
+
+macOS (launchd agent; starts when you log in):
+
+```sh
+install -m 755 bin/yasssm-darwin-arm64 ~/.local/bin/yasssm
+yasssm totp-init
+sed "s|HOME|$HOME|g" deploy/com.yasssm.plist > ~/Library/LaunchAgents/com.yasssm.plist
+launchctl load ~/Library/LaunchAgents/com.yasssm.plist
 ```
 
 `yasssm totp-qr` shows the QR code again. `yasssm totp-init -force` makes a new secret.
@@ -53,7 +65,7 @@ Approve the service once in the Tailscale admin console. It is then at `https://
 |---|---|
 | `YASSSM_ADDR` | `127.0.0.1:8090` |
 | `YASSSM_STACKS_DIR` | `$HOME` (one stack per subfolder) |
-| `YASSSM_TOTP_FILE` | `~/.config/yasssm/totp` |
+| `YASSSM_TOTP_FILE` | `yasssm/totp` in your config dir (`~/.config` on Linux, `~/Library/Application Support` on macOS) |
 | `YASSSM_SECURE_COOKIE` | set to `1` when behind HTTPS |
 
 ## Credits

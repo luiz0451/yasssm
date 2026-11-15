@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -37,7 +38,11 @@ var (
 )
 
 // ListTimers lists the system or user systemd timers with their schedule and command.
+// macOS has no systemd: ErrUnsupported.
 func ListTimers(ctx context.Context, user bool) ([]Timer, error) {
+	if runtime.GOOS != "linux" {
+		return nil, ErrUnsupported
+	}
 	sc := func(args ...string) []string {
 		if user {
 			return append([]string{"--user"}, args...)
@@ -147,6 +152,9 @@ func ReadSystemCron() []CronDir {
 		{"/etc/cron.daily", "scripts run every day (run-parts, or anacron when the machine was off)"},
 		{"/etc/cron.weekly", "scripts run every week"},
 		{"/etc/cron.monthly", "scripts run every month"},
+		{"/etc/periodic/daily", "macOS: scripts periodic runs every day"},
+		{"/etc/periodic/weekly", "macOS: scripts periodic runs every week"},
+		{"/etc/periodic/monthly", "macOS: scripts periodic runs every month"},
 	} {
 		entries, err := os.ReadDir(d.dir)
 		if err != nil {

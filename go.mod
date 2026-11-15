@@ -10,6 +10,7 @@ tool (
 require (
 	github.com/Oudwins/tailwind-merge-go v0.2.2
 	github.com/a-h/templ v0.3.1118
+	github.com/alecthomas/chroma/v2 v2.27.0
 	rsc.io/qr v0.2.0
 )
 
@@ -19,6 +20,7 @@ require (
 	github.com/axadrn/shadcn-templ/v2 v2.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/evanw/esbuild v0.28.2 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect

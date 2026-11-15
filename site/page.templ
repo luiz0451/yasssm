@@ -1,133 +1,165 @@
-// Package site is the project website (GitHub Pages). It is built from the app's own templ
-// components, theme and icons, so it looks like the app; `make site` renders it to site/dist.
+// Package site is the project website (GitHub Pages): a home page and a docs page, built
+// with the app's own components, icons and colours. `make site` renders it to site/dist.
 package site
 
 import (
 	"yasssm/components/button"
-	"yasssm/components/card"
 	"yasssm/components/icon"
 )
 
 const repo = "https://github.com/luiz0451/yasssm"
 
-templ Page() {
+const linuxInstall = `# build and install the binary
+make build-linux
+install -m 755 bin/yasssm-linux-amd64 ~/.local/bin/yasssm
+
+# scan the QR code with your authenticator app
+yasssm totp-init
+
+# run it as a user service that survives logout and reboots
+cp deploy/yasssm.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now yasssm
+loginctl enable-linger`
+
+const macInstall = `# build and install the binary
+make build-darwin
+install -m 755 bin/yasssm-darwin-arm64 ~/.local/bin/yasssm
+
+# scan the QR code with your authenticator app
+yasssm totp-init
+
+# run it as a launchd agent that starts when you log in
+sed "s|HOME|$HOME|g" deploy/com.yasssm.plist > ~/Library/LaunchAgents/com.yasssm.plist
+launchctl load ~/Library/LaunchAgents/com.yasssm.plist`
+
+// The one-line installers (site/install.sh, site/install-macos.sh), shown on the home page.
+const (
+	linuxOneLiner = "curl -fsSL https://yasssm.luizlab.com.br/install.sh | sh"
+	macOneLiner   = "curl -fsSL https://yasssm.luizlab.com.br/install-macos.sh | sh"
+)
+
+// shell is the page frame: content and a plain footer. Navigation lives in each page (buttons on
+// the home page, the sidebar on the docs).
+templ shell(title, path string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta name="color-scheme" content="light dark"/>
-			<title>yasssm · a small web panel for one Linux server</title>
-			<meta name="description" content="yasssm is a small web panel for one Linux server: Docker Compose stacks, services, cron and system stats. One Go binary, no JavaScript, TOTP login."/>
+			<title>{ title }</title>
+			<meta name="description" content="Yet Another Simple Self-hosted Server Manager: manage your server from any device on your private network."/>
 			<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"/>
-			<link rel="canonical" href="https://yasssm.luizlab.com.br/"/>
+			<link rel="canonical" href={ "https://yasssm.luizlab.com.br/" + path }/>
 			<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
 			<link rel="stylesheet" href="assets/css/site.css"/>
+			<link rel="stylesheet" href="assets/css/highlight.css"/>
 		</head>
 		<body class="flex min-h-svh flex-col bg-background font-sans text-foreground antialiased">
-			<main class="mx-auto w-full max-w-4xl flex-1 space-y-16 px-4 py-16 sm:py-24">
-				<section class="grid items-center gap-12 md:grid-cols-[1.1fr_1fr]">
-					<div class="space-y-5">
-						<div class="flex items-center gap-2 text-2xl font-semibold"><span aria-hidden="true">🐍</span> yasssm</div>
-						<h1 class="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">A small web panel for one Linux server.</h1>
-						<p class="max-w-prose text-muted-foreground">
-							Manage Docker Compose stacks and check services, cron and system load from your phone. One Go binary, no JavaScript.
-						</p>
-						<div class="flex flex-wrap gap-2">
-							@button.Button(button.Props{Href: repo}) {
-								GitHub
-							}
-							@button.Button(button.Props{Href: "#install", Variant: button.VariantOutline}) {
-								Install
-							}
-						</div>
-					</div>
-					@preview()
-				</section>
-				<section id="install" class="space-y-4">
-					<h2 class="font-heading text-xl font-semibold">Install</h2>
-					@code("make build-linux\ninstall -m 755 bin/yasssm-linux-amd64 ~/.local/bin/yasssm\nyasssm totp-init")
-					<p class="text-sm text-muted-foreground">
-						Running it as a service and reaching it over Tailscale: see the <a class="text-foreground underline underline-offset-4" href={ templ.SafeURL(repo + "#readme") }>README</a>.
-					</p>
-				</section>
+			<main class="mx-auto w-full max-w-5xl flex-1 space-y-10 px-4 pt-12 pb-12 sm:pt-16">
+				{ children... }
 			</main>
-			<footer class="mx-auto w-full max-w-4xl px-4 py-6 text-sm text-muted-foreground">
-				GPL-3.0 · <a class="underline underline-offset-4" href={ templ.SafeURL(repo) }>GitHub</a>
+			<footer class="border-t">
+				<div class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-6 text-sm text-muted-foreground">
+					<span>GPL-3.0</span>
+					<a class="ml-auto inline-flex items-center gap-1.5 hover:text-foreground" href="https://ko-fi.com/luizcarvalho">
+						@icon.Coffee(icon.Props{Class: "size-5"})
+						Tip me on Ko-fi
+					</a>
+				</div>
 			</footer>
+			@copyScript()
 		</body>
 	</html>
 }
 
-// preview is a static mock of the app's main screen, made of the app's own components.
-templ preview() {
-	<div class="mx-auto w-full max-w-sm rounded-[2rem] border bg-muted/30 p-3 shadow-sm" aria-hidden="true">
-		<div class="space-y-3 rounded-[1.5rem] bg-background p-3">
-			<div class="flex items-center gap-2 px-1 pt-1 text-sm">
-				<span>🐍</span>
-				<span class="font-semibold">yasssm</span>
-				<span class="text-muted-foreground">homelab</span>
+templ Page() {
+	@shell("yasssm · Yet Another Simple Self-hosted Server Manager", "") {
+		<section class="mx-auto flex max-w-4xl flex-col items-center gap-8 py-6 text-center sm:py-12">
+			<div class="space-y-3">
+				<div class="text-6xl leading-none" aria-hidden="true">🐍</div>
+				<h1 class="font-heading text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+					<span class="block">Yet Another</span>
+					<span class="block">Simple Self-hosted</span>
+					<span class="block">Server Manager</span>
+				</h1>
+				<p class="text-lg text-muted-foreground">Manage your server from any device on your private network.</p>
 			</div>
-			<div class="grid grid-cols-3 gap-2">
-				@stat("Load", "0.42")
-				@stat("Memory", "38%")
-				@stat("Disk", "61%")
+			<div class="flex gap-2">
+				@button.Button(button.Props{Href: "docs.html"}) {
+					Docs
+				}
+				@sourceButton()
 			</div>
-			@card.Card() {
-				@card.Header() {
-					@card.Title(card.TitleProps{Class: "flex items-center gap-2"}) {
-						@icon.Stack(icon.Props{Class: "size-4 text-muted-foreground"})
-						media
-						<span class="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-							@dot("bg-ok ring-ok/20")
-							3
-						</span>
-					}
-					@card.Description() {
-						<span class="font-mono text-xs">~/media/compose.yaml</span>
-					}
-				}
-				@card.Content() {
-					<ul class="divide-y border-t">
-						@row("bg-ok ring-ok/20", "jellyfin", "Up 4 days")
-						@row("bg-ok ring-ok/20", "sonarr", "Up 4 days")
-						@row("bg-warn ring-warn/20", "radarr", "Restarting")
-					</ul>
-				}
-				@card.Footer(card.FooterProps{Class: "gap-1.5"}) {
-					@button.Button(button.Props{Size: button.SizeSm, Variant: button.VariantOutline}) {
-						@icon.ArrowClockwise(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
-						Restart
-					}
-					@button.Button(button.Props{Size: button.SizeSm, Variant: button.VariantOutline}) {
-						@icon.CloudArrowDown(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
-						Pull
-					}
-				}
-			}
+			@oneLiner()
+		</section>
+	}
+}
+
+templ sourceButton() {
+	@button.Button(button.Props{Href: repo, Variant: button.VariantOutline}) {
+		@icon.GithubLogo(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+		Source
+	}
+}
+
+// oneLiner is the install command in one box: Linux/macOS tabs (radio buttons, no script) and a
+// copy button in its header.
+templ oneLiner() {
+	<div id="install" data-code class="group/install w-full max-w-2xl overflow-hidden rounded-lg border bg-muted/40 text-left">
+		<div class="flex items-center gap-4 border-b bg-background/60 pr-1.5 pl-3 text-sm">
+			@tab("linux", "Linux", true)
+			@tab("macos", "macOS", false)
+			@copyButton("ml-auto")
 		</div>
+		<pre class="chroma hidden overflow-auto p-3 font-mono text-sm group-has-[#os-linux:checked]/install:block">
+			@highlight(linuxOneLiner, "bash")
+		</pre>
+		<pre class="chroma hidden overflow-auto p-3 font-mono text-sm group-has-[#os-macos:checked]/install:block">
+			@highlight(macOneLiner, "bash")
+		</pre>
 	</div>
 }
 
-templ stat(name, value string) {
-	<div class="rounded-lg border bg-card px-2.5 py-2">
-		<div class="text-xs text-muted-foreground">{ name }</div>
-		<div class="font-mono text-sm">{ value }</div>
-	</div>
+// tab is an underlined tab; the checked radio inside it marks the active one.
+templ tab(id, label string, checked bool) {
+	<label class="-mb-px cursor-pointer border-b-2 border-transparent py-2 text-muted-foreground hover:text-foreground has-checked:border-foreground has-checked:font-medium has-checked:text-foreground has-focus-visible:underline">
+		<input type="radio" name="os" id={ "os-" + id } class="sr-only" checked?={ checked }/>
+		{ label }
+	</label>
 }
 
-templ dot(color string) {
-	<span class={ "inline-flex size-2.5 shrink-0 rounded-full ring-3", color }></span>
-}
-
-templ row(color, name, status string) {
-	<li class="flex items-center gap-2 py-2 text-sm">
-		@dot(color)
-		<span class="font-medium">{ name }</span>
-		<span class="ml-auto text-xs text-muted-foreground">{ status }</span>
-	</li>
-}
-
+// code is a highlighted shell block with a copy button in its corner.
 templ code(text string) {
-	<pre class="overflow-x-auto rounded-lg border bg-muted/40 p-4 font-mono text-sm">{ text }</pre>
+	<div data-code class="relative">
+		<pre class="chroma overflow-auto rounded-lg border bg-muted/40 p-3 pr-12 text-left font-mono text-xs leading-relaxed">
+			@highlight(text, "bash")
+		</pre>
+		@copyButton("absolute top-2 right-2")
+	</div>
+}
+
+// copyButton copies the visible <pre> of the enclosing [data-code] block.
+templ copyButton(class string) {
+	<button type="button" data-copy class={ "group/copy inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground", class } title="Copy" aria-label="Copy">
+		@icon.CopyRegular(icon.Props{Class: "size-4 group-data-copied/copy:hidden"})
+		@icon.CheckRegular(icon.Props{Class: "hidden size-4 text-ok group-data-copied/copy:block"})
+	</button>
+}
+
+// copyScript is the site's only script: copy a code block to the clipboard.
+templ copyScript() {
+	<script>
+		document.addEventListener("click", async (e) => {
+			const b = e.target.closest("[data-copy]");
+			if (!b) return;
+			const pre = [...b.closest("[data-code]").querySelectorAll("pre")].find(
+				(p) => p.offsetParent,
+			);
+			await navigator.clipboard.writeText(pre.innerText.trim());
+			b.dataset.copied = "";
+			setTimeout(() => delete b.dataset.copied, 1500);
+		});
+	</script>
 }
