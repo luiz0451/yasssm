@@ -31,17 +31,11 @@
   font-display: swap;
   src: url("../fonts/fira-code-latin-400-normal.woff2") format("woff2");
 }
-@font-face {
-  font-family: "Fira Code";
-  font-weight: 500 600;
-  font-display: swap;
-  src: url("../fonts/fira-code-latin-500-normal.woff2") format("woff2");
-}
 
 @theme inline {
   --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Fira Code", ui-monospace, Menlo, monospace;
-  --font-heading: var(--font-mono);
+  --font-heading: var(--font-sans);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-background: var(--background);

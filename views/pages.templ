@@ -37,7 +37,7 @@ templ LoginPage(p Page, errMsg string) {
 								ID:       "code",
 								Name:     "code",
 								Required: true,
-								Class:    "h-12 text-center font-mono text-xl tracking-[0.4em]",
+								Class:    "h-12 text-center text-xl tabular-nums tracking-[0.4em]",
 								Attributes: templ.Attributes{
 									"inputmode":    "numeric",
 									"autocomplete": "one-time-code",
@@ -72,7 +72,7 @@ templ DashboardPage(p Page, d Dashboard) {
 		</div>
 		<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
 			@pageTitle(icon.Stack, "Stacks")
-			<p class="font-mono text-xs text-muted-foreground">
+			<p class="text-sm text-muted-foreground">
 				{ strconv.Itoa(d.Stacks) } stacks · { strconv.Itoa(d.Running) }/{ strconv.Itoa(d.Total) } containers running
 			</p>
 		</div>
@@ -162,7 +162,7 @@ templ containerRow(r ContainerRow) {
 		<div class="min-w-0 flex-1 space-y-1">
 			<div class="flex min-w-0 items-center gap-2">
 				@statusDot(r.State)
-				<a href={ templ.SafeURL(r.LogsURL) } class="truncate font-mono font-medium text-primary underline-offset-4 hover:underline">{ r.Name }</a>
+				<a href={ templ.SafeURL(r.LogsURL) } class="truncate font-medium text-primary underline-offset-4 hover:underline">{ r.Name }</a>
 				if r.Service != "" && r.Service != r.Name {
 					<span class="hidden truncate text-xs text-muted-foreground sm:inline">{ r.Service }</span>
 				}
@@ -238,7 +238,7 @@ templ ConfirmPage(p Page, d Confirm) {
 						}
 					</div>
 					@card.Title(card.TitleProps{Class: "break-all"}) {
-						{ d.Label } { d.Kind } <code class="bg-accent px-1 text-accent-foreground">{ d.Name }</code>?
+						{ d.Label } { d.Kind } <span class="bg-accent px-1 font-semibold text-accent-foreground">{ d.Name }</span>?
 					}
 					@card.Description(card.DescriptionProps{Class: "flex items-center gap-1.5"}) {
 						@icon.Terminal(icon.Props{Class: "size-3.5"})
@@ -293,11 +293,11 @@ templ JobPage(p Page, j host.JobView) {
 		<div class="space-y-3">
 			@backLink("/jobs", "Jobs")
 			<div class="space-y-1">
-				<h1 class="flex items-center gap-2 font-heading text-lg font-medium">
+				<h1 class="flex items-center gap-2 font-heading text-lg font-semibold">
 					@jobIcon(j, "size-5 shrink-0")
 					<span class="break-all">{ j.Title }</span>
 				</h1>
-				<p class="font-mono text-xs text-muted-foreground">
+				<p class="text-sm text-muted-foreground tabular-nums">
 					started { j.Started } · { j.Duration }
 					if !j.Done {
 						· refreshing every 2s
@@ -342,7 +342,7 @@ templ JobsPage(p Page, jobs []host.JobView) {
 									@jobIcon(j, "size-4 shrink-0")
 									<span class="break-all">{ j.Title }</span>
 								</a>
-								<div class="pl-6 font-mono text-xs text-muted-foreground">
+								<div class="pl-6 text-xs text-muted-foreground tabular-nums">
 									{ j.Started } · { j.Duration }
 								</div>
 								if j.Failed {
@@ -388,7 +388,7 @@ templ ServicesPage(p Page, lists []UnitList) {
 								<li class="space-y-0.5 py-2">
 									<div class="flex min-w-0 items-center gap-2">
 										@statusDot(u.Active)
-										<span class="truncate font-mono font-medium">{ u.Name }</span>
+										<span class="truncate font-medium">{ u.Name }</span>
 										<span class="shrink-0 text-xs text-muted-foreground">{ u.Sub }</span>
 									</div>
 									if u.Description != "" {

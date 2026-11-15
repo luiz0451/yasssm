@@ -40,8 +40,8 @@ templ Layout(p Page) {
 					<div class="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:h-12">
 						<a href="/" class="mr-3 flex min-w-0 items-baseline gap-2" title="Yet Another Simple Self-hosted Server Manager">
 							<span class="self-center text-lg leading-none" aria-hidden="true">🐍</span>
-							<span class="font-mono font-medium">yasssm</span>
-							<span class="truncate font-mono text-xs text-muted-foreground">{ p.Host }</span>
+							<span class="font-semibold">yasssm</span>
+							<span class="truncate text-sm text-muted-foreground">{ p.Host }</span>
 						</a>
 						<nav class="hidden items-center gap-1 sm:flex" aria-label="Main">
 							for _, n := range navItems {
@@ -90,7 +90,7 @@ templ navLink(n navItem, active bool) {
 templ tabLink(n navItem, active bool) {
 	<a
 		href={ templ.SafeURL(n.href) }
-		class={ "flex h-14 flex-col items-center justify-center gap-0.5 font-mono text-[0.7rem]", navActive(active) }
+		class={ "flex h-14 flex-col items-center justify-center gap-0.5 text-xs", navActive(active) }
 		{ ariaCurrent(active)... }
 	>
 		@n.icon(icon.Props{Class: "size-5"})
@@ -253,7 +253,7 @@ templ muted(text string) {
 
 // pageTitle is the h1 with a leading icon used on every page.
 templ pageTitle(ic func(...icon.Props) templ.Component, title string) {
-	<h1 class="flex min-w-0 items-center gap-2 font-heading text-lg font-medium">
+	<h1 class="flex min-w-0 items-center gap-2 font-heading text-lg font-semibold">
 		@ic(icon.Props{Class: "size-5 shrink-0 text-muted-foreground"})
 		<span class="truncate">{ title }</span>
 	</h1>
