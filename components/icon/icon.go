@@ -25,7 +25,7 @@ type Props struct {
 	// e.g. data-icon="inline-start" for the icon spacing inside buttons
 	// and badges.
 	Attributes templ.Attributes
-	// Size is lucide's size prop, the width and height. Defaults to 24.
+	// Size is the width and height in px. Defaults to 24.
 	Size int
 }
 
@@ -78,14 +78,14 @@ func generateSVG(name string, props Props) (string, error) {
 		return "", err // Error from getIconContent already includes icon name
 	}
 
-	// Construct the final SVG string, the attributes lucide-react renders,
-	// with its "lucide lucide-<name>" classes before the given ones.
-	class := strings.TrimSpace("lucide lucide-" + name + " " + props.Class)
+	// Phosphor icons are filled shapes on a 256 grid; the duotone weight
+	// draws its background shape at opacity 0.2, so currentColor tints both.
+	class := strings.TrimSpace("ph ph-" + name + " " + props.Class)
 	size := props.Size
 	if size == 0 {
 		size = 24
 	}
-	return fmt.Sprintf("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"%s\"%s>%s</svg>",
+	return fmt.Sprintf("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\" viewBox=\"0 0 256 256\" fill=\"currentColor\" class=\"%s\"%s>%s</svg>",
 		size, size, templ.EscapeString(class), attrString(props.Attributes), content), nil
 }
 

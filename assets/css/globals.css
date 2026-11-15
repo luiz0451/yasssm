@@ -5,10 +5,45 @@
 /* No JavaScript to toggle a .dark class: follow the OS preference. */
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
+/* Fira, self-hosted (the CSP allows no font CDN). Latin subset from
+   @fontsource 5.3.0, SIL OFL 1.1: see ../fonts/OFL.txt. */
+@font-face {
+  font-family: "Fira Sans";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/fira-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fira Sans";
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/fira-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fira Sans";
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/fira-sans-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fira Code";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/fira-code-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fira Code";
+  font-weight: 500 600;
+  font-display: swap;
+  src: url("../fonts/fira-code-latin-500-normal.woff2") format("woff2");
+}
+
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --font-heading: var(--font-sans);
+  --font-sans: "Fira Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, Menlo, monospace;
+  --font-heading: var(--font-mono);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -49,31 +84,36 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Lobsters-like: near-white paper, one text color whose grays are opacity
+   steps, one blue for links and primary actions, borders instead of
+   shadows. Pierre-like: yellow highlight for hover/selection. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #fefefe;
+  --foreground: #333333;
+  --card: #ffffff;
+  --card-foreground: #333333;
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  --primary: #1c59d1;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeeee;
+  --secondary-foreground: #333333;
+  --muted: #eeeeee;
+  --muted-foreground: rgb(51 51 51 / 75%);
+  --accent: #fffcd7;
+  --accent-foreground: #333333;
+  --destructive: #ac130d;
+  --ok: #008000;
+  --warn: #a15c00;
+  --border: #cccccc;
+  --input: #cccccc;
+  --ring: #808080;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.25rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -86,24 +126,26 @@
 
 @media (prefers-color-scheme: dark) {
 :root {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0c0c0c;
+  --foreground: rgb(255 255 255 / 87%);
+  --card: #141414;
+  --card-foreground: rgb(255 255 255 / 87%);
+  --popover: #141414;
+  --popover-foreground: rgb(255 255 255 / 87%);
+  --primary: #8ab1ff;
+  --primary-foreground: #0c0c0c;
+  --secondary: #202020;
+  --secondary-foreground: rgb(255 255 255 / 87%);
+  --muted: #202020;
+  --muted-foreground: rgb(255 255 255 / 64%);
+  --accent: #3d350b;
+  --accent-foreground: rgb(255 255 255 / 87%);
+  --destructive: #fd4e48;
+  --ok: #2ab42a;
+  --warn: #e0a526;
+  --border: #303030;
+  --input: #303030;
+  --ring: #808080;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -126,5 +168,8 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  ::selection {
+    @apply bg-accent text-accent-foreground;
   }
 }

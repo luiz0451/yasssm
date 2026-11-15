@@ -67,7 +67,7 @@ templ Card(props ...Props) {
 		}
 		data-slot="card"
 		data-size={ string(p.Size) }
-		class={ utils.CN("ring-foreground/10 bg-card text-card-foreground gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm ring-1 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col", p.Class) }
+		class={ utils.CN("border border-border bg-card text-card-foreground gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col", p.Class) }
 		{ p.Attributes... }
 	>
 		{ children... }
@@ -86,7 +86,7 @@ templ Header(props ...HeaderProps) {
 		data-slot="card-header"
 		class={
 			utils.CN(
-				"gap-1 rounded-t-xl px-(--card-spacing) [.border-b]:pb-(--card-spacing) group/card-header @container/card-header grid auto-rows-min items-start has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto]",
+				"gap-1 rounded-t-xl px-(--card-spacing) [.border-b]:pb-(--card-spacing) group/card-header @container/card-header grid auto-rows-min items-start @md/card-header:has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto]",
 				p.Class,
 			),
 		}
@@ -130,7 +130,8 @@ templ Description(props ...DescriptionProps) {
 	</div>
 }
 
-// Action sits in the top-right corner of the header, e.g. a button or badge.
+// Action sits in the top-right corner of the header, e.g. a button or badge;
+// in a narrow header (phones) it wraps below the title instead.
 templ Action(props ...ActionProps) {
 	{{ var p ActionProps }}
 	if len(props) > 0 {
@@ -143,7 +144,7 @@ templ Action(props ...ActionProps) {
 		data-slot="card-action"
 		class={
 			utils.CN(
-				"col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+				"mt-2 @md/card-header:mt-0 @md/card-header:col-start-2 @md/card-header:row-span-2 @md/card-header:row-start-1 self-start @md/card-header:justify-self-end",
 				p.Class,
 			),
 		}

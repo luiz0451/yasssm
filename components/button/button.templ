@@ -126,11 +126,11 @@ func (b Props) variantClasses() string {
 	case VariantDestructive:
 		return "bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30"
 	case VariantOutline:
-		return "border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 aria-expanded:bg-muted aria-expanded:text-foreground"
+		return "border-border bg-background hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-accent aria-expanded:bg-accent aria-expanded:text-accent-foreground"
 	case VariantSecondary:
 		return "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground"
 	case VariantGhost:
-		return "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground"
+		return "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent aria-expanded:bg-accent aria-expanded:text-accent-foreground"
 	case VariantLink:
 		return "text-primary underline-offset-4 hover:underline"
 	default:
@@ -143,18 +143,18 @@ func (b Props) sizeClasses() string {
 	case SizeXs:
 		return "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3"
 	case SizeSm:
-		return "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"
+		return "h-10 sm:h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-3 sm:px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"
 	case SizeLg:
 		return "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2"
 	case SizeIcon:
-		return "size-8"
+		return "size-11 sm:size-8"
 	case SizeIconXs:
 		return "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3"
 	case SizeIconSm:
-		return "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"
+		return "size-11 sm:size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"
 	case SizeIconLg:
 		return "size-9"
 	default:
-		return "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2"
+		return "h-11 sm:h-8 gap-1.5 px-3 sm:px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2"
 	}
 }

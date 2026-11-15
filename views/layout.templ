@@ -8,12 +8,24 @@ import (
 	"yasssm/components/icon"
 )
 
+type navItem struct {
+	href, label, key string
+	icon             func(...icon.Props) templ.Component
+}
+
+var navItems = []navItem{
+	{"/", "Stacks", "stacks", icon.Stack},
+	{"/services", "Services", "services", icon.GearSix},
+	{"/cron", "Cron", "cron", icon.CalendarDots},
+	{"/jobs", "Jobs", "jobs", icon.ClockCounterClockwise},
+}
+
 templ Layout(p Page) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 			<meta name="color-scheme" content="light dark"/>
 			if p.Refresh > 0 {
 				<meta http-equiv="refresh" content={ strconv.Itoa(p.Refresh) }/>
@@ -24,17 +36,18 @@ templ Layout(p Page) {
 		</head>
 		<body class="min-h-svh bg-background font-sans text-foreground antialiased">
 			if p.Authed {
-				<header class="sticky top-0 z-10 border-b bg-card/95 backdrop-blur">
-					<nav class="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-2">
-						<a href="/" class="mr-3 flex shrink-0 items-baseline gap-2" title="Yet Another Simple Self-hosted Server Manager">
+				<header class="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+					<div class="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:h-12">
+						<a href="/" class="mr-3 flex min-w-0 items-baseline gap-2" title="Yet Another Simple Self-hosted Server Manager">
 							<span class="self-center text-lg leading-none" aria-hidden="true">🐍</span>
-							<span class="font-semibold">yasssm</span>
-							<span class="text-sm text-muted-foreground">{ p.Host }</span>
+							<span class="font-mono font-medium">yasssm</span>
+							<span class="truncate font-mono text-xs text-muted-foreground">{ p.Host }</span>
 						</a>
-						@navLink("/", "Stacks", p.Nav == "stacks", icon.Layers)
-						@navLink("/services", "Services", p.Nav == "services", icon.Cog)
-						@navLink("/cron", "Cron", p.Nav == "cron", icon.CalendarClock)
-						@navLink("/jobs", "Jobs", p.Nav == "jobs", icon.History)
+						<nav class="hidden items-center gap-1 sm:flex" aria-label="Main">
+							for _, n := range navItems {
+								@navLink(n, p.Nav == n.key)
+							}
+						</nav>
 						<form method="post" action="/logout" class="ml-auto shrink-0">
 							@button.Button(button.Props{
 								Variant:    button.VariantGhost,
@@ -42,48 +55,79 @@ templ Layout(p Page) {
 								Type:       button.TypeSubmit,
 								Attributes: templ.Attributes{"title": "Log out", "aria-label": "Log out"},
 							}) {
-								@icon.LogOut()
+								@icon.SignOut()
 							}
 						</form>
-					</nav>
+					</div>
 				</header>
+				// Phones get a bottom tab bar in thumb reach instead of the header links.
+				<nav class="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden" aria-label="Main">
+					for _, n := range navItems {
+						@tabLink(n, p.Nav == n.key)
+					}
+				</nav>
 			}
-			<main class="mx-auto max-w-6xl space-y-6 p-4">
+			<main class={ "mx-auto max-w-6xl space-y-6 p-4", templ.KV("pb-24 sm:pb-4", p.Authed) }>
 				{ children... }
 			</main>
 		</body>
 	</html>
 }
 
-templ navLink(href, label string, active bool, ic func(...icon.Props) templ.Component) {
-	@button.Button(button.Props{Href: href, Size: button.SizeSm, Variant: navVariant(active), Class: "shrink-0"}) {
-		@ic(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
-		{ label }
+templ navLink(n navItem, active bool) {
+	@button.Button(button.Props{
+		Href:       n.href,
+		Size:       button.SizeSm,
+		Variant:    button.VariantGhost,
+		Class:      navActive(active),
+		Attributes: ariaCurrent(active),
+	}) {
+		@n.icon(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+		{ n.label }
 	}
 }
 
-func navVariant(active bool) button.Variant {
+templ tabLink(n navItem, active bool) {
+	<a
+		href={ templ.SafeURL(n.href) }
+		class={ "flex h-14 flex-col items-center justify-center gap-0.5 font-mono text-[0.7rem]", navActive(active) }
+		{ ariaCurrent(active)... }
+	>
+		@n.icon(icon.Props{Class: "size-5"})
+		{ n.label }
+	</a>
+}
+
+// navActive marks the current page with the yellow highlight.
+func navActive(active bool) string {
 	if active {
-		return button.VariantSecondary
+		return "bg-accent text-accent-foreground"
 	}
-	return button.VariantGhost
+	return "text-muted-foreground"
+}
+
+func ariaCurrent(active bool) templ.Attributes {
+	if active {
+		return templ.Attributes{"aria-current": "page"}
+	}
+	return nil
 }
 
 // actionIcon maps an action name to its icon.
 func actionIcon(action string) func(...icon.Props) templ.Component {
 	switch action {
 	case "logs":
-		return icon.ScrollText
+		return icon.Scroll
 	case "up", "start":
 		return icon.Play
 	case "restart":
-		return icon.RotateCw
+		return icon.ArrowClockwise
 	case "update":
-		return icon.CloudDownload
+		return icon.CloudArrowDown
 	case "stop":
-		return icon.Square
+		return icon.Stop
 	}
-	return icon.CircleAlert
+	return icon.WarningCircle
 }
 
 func actionVariant(danger bool) button.Variant {
@@ -101,7 +145,7 @@ templ actionButton(l Link) {
 	}
 }
 
-// iconAction is an icon-only ghost button with a native tooltip, for table
+// iconAction is an icon-only ghost button with a native tooltip, for list
 // rows; destructive ones only tint the icon.
 templ iconAction(l Link) {
 	@button.Button(button.Props{
@@ -117,7 +161,7 @@ templ iconAction(l Link) {
 
 func dangerText(danger bool) string {
 	if danger {
-		return "text-destructive hover:bg-destructive/10 hover:text-destructive"
+		return "text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
 	}
 	return ""
 }
@@ -127,7 +171,7 @@ func dangerText(danger bool) string {
 templ toneBadge(tone, text string) {
 	switch tone {
 		case "ok":
-			@badge.Badge(badge.Props{Class: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"}) {
+			@badge.Badge(badge.Props{Class: "bg-ok/10 text-ok"}) {
 				{ text }
 			}
 		case "bad":
@@ -135,7 +179,7 @@ templ toneBadge(tone, text string) {
 				{ text }
 			}
 		case "warn":
-			@badge.Badge(badge.Props{Class: "bg-amber-500/15 text-amber-700 dark:text-amber-400"}) {
+			@badge.Badge(badge.Props{Class: "bg-warn/10 text-warn"}) {
 				{ text }
 			}
 		default:
@@ -150,7 +194,7 @@ templ toneBadge(tone, text string) {
 templ statusDot(state string) {
 	<span class={ "relative inline-flex size-2.5 shrink-0 rounded-full ring-3", dotColor(stateTone(state)) } title={ state } role="img" aria-label={ state }>
 		if stateTone(state) == "warn" {
-			<span class="absolute inline-flex size-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+			<span class="absolute inline-flex size-full animate-ping rounded-full bg-warn opacity-75"></span>
 		}
 	</span>
 }
@@ -166,13 +210,13 @@ templ statusLine(state, text string) {
 func dotColor(tone string) string {
 	switch tone {
 	case "ok":
-		return "bg-emerald-500 ring-emerald-500/20"
+		return "bg-ok ring-ok/20"
 	case "bad":
-		return "bg-red-500 ring-red-500/20"
+		return "bg-destructive ring-destructive/20"
 	case "warn":
-		return "bg-amber-400 ring-amber-400/20"
+		return "bg-warn ring-warn/20"
 	}
-	return "bg-zinc-400 ring-zinc-400/20 dark:bg-zinc-500"
+	return "bg-muted-foreground/60 ring-muted-foreground/15"
 }
 
 func stateTone(state string) string {
@@ -189,7 +233,7 @@ func stateTone(state string) string {
 
 templ errorAlert(msg string) {
 	@alert.Alert(alert.Props{Variant: alert.VariantDestructive}) {
-		@icon.TriangleAlert()
+		@icon.Warning()
 		@alert.Title() {
 			Error
 		}
@@ -209,9 +253,9 @@ templ muted(text string) {
 
 // pageTitle is the h1 with a leading icon used on every page.
 templ pageTitle(ic func(...icon.Props) templ.Component, title string) {
-	<h1 class="flex items-center gap-2 text-xl font-semibold">
-		@ic(icon.Props{Class: "size-5 text-muted-foreground"})
-		{ title }
+	<h1 class="flex min-w-0 items-center gap-2 font-heading text-lg font-medium">
+		@ic(icon.Props{Class: "size-5 shrink-0 text-muted-foreground"})
+		<span class="truncate">{ title }</span>
 	</h1>
 }
 

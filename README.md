@@ -19,6 +19,8 @@ make test lint
 
 `make gen` downloads the Tailwind standalone CLI into `bin/` on first use.
 
+The look is shadcn-templ with a custom theme in `assets/css/globals.css`: Fira Sans and Fira Code (OFL, self-hosted in `assets/fonts/` because the CSP allows no font CDN) and [Phosphor](https://phosphoricons.com) duotone icons. `components/icon` carries only the icons the views use; `shadcn-templ add icon` would bring back Lucide, so add Phosphor icons by hand (see `icon_data.go`).
+
 ## Install (as the login user, in the docker group)
 
 ```sh
