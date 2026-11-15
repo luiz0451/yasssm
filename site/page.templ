@@ -99,7 +99,6 @@ templ Page() {
 
 templ sourceButton() {
 	@button.Button(button.Props{Href: repo, Variant: button.VariantOutline}) {
-		@icon.GithubLogo(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
 		Source
 	}
 }
@@ -130,13 +129,14 @@ templ tab(id, label string, checked bool) {
 	</label>
 }
 
-// code is a highlighted shell block with a copy button in its corner.
+// code is a highlighted shell block with a copy button beside it, outside the scrolling <pre>
+// so long lines never run under it.
 templ code(text string) {
-	<div data-code class="relative">
-		<pre class="chroma overflow-auto rounded-lg border bg-muted/40 p-3 pr-12 text-left font-mono text-xs leading-relaxed">
+	<div data-code class="flex items-start rounded-lg border bg-muted/40">
+		<pre class="chroma min-w-0 flex-1 overflow-auto p-3 text-left font-mono text-xs leading-relaxed">
 			@highlight(text, "bash")
 		</pre>
-		@copyButton("absolute top-2 right-2")
+		@copyButton("m-1.5 shrink-0")
 	</div>
 }
 

@@ -5,15 +5,12 @@ import "yasssm/components/card"
 templ Docs() {
 	@shell("Docs · yasssm", "docs.html") {
 		<div class="grid gap-8 md:grid-cols-[12rem_1fr] md:gap-10">
-			<nav class="md:sticky md:top-12 md:self-start" aria-label="Docs">
-				<div class="flex items-center justify-between gap-2 md:flex-col md:items-start md:gap-4">
-					<a href="./" class="flex items-center gap-2">
-						<span class="text-2xl leading-none" aria-hidden="true">🐍</span>
-						<span class="text-lg font-semibold">yasssm</span>
-					</a>
-					@sourceButton()
-				</div>
-				<ul class="mt-6 hidden space-y-1 text-sm text-muted-foreground md:block">
+			<nav class="flex items-center justify-between gap-2 md:sticky md:top-12 md:flex-col md:items-start md:gap-6 md:self-start" aria-label="Docs">
+				<a href="./" class="flex items-center gap-2">
+					<span class="text-2xl leading-none" aria-hidden="true">🐍</span>
+					<span class="text-lg font-semibold">yasssm</span>
+				</a>
+				<ul class="hidden space-y-1 text-sm text-muted-foreground md:block">
 					@toc("requirements", "Requirements")
 					@toc("install", "Install")
 					@toc("access", "Access")
@@ -22,6 +19,7 @@ templ Docs() {
 					@toc("macos", "macOS notes")
 					@toc("security", "Security")
 				</ul>
+				@sourceButton()
 			</nav>
 			<article class="min-w-0 space-y-10">
 				<h1 class="font-heading text-3xl font-semibold tracking-tight">Docs</h1>
