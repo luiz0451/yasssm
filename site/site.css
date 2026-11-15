@@ -1,0 +1,6 @@
+/* The app's theme as is; fonts resolve to ../fonts next to the built CSS in dist/assets. */
+@import "../assets/css/globals.css";
+
+html {
+  scroll-behavior: smooth;
+}

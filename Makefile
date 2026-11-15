@@ -5,7 +5,7 @@ TAILWIND := bin/tailwindcss
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: gen build build-linux test lint run
+.PHONY: gen build build-linux test lint run site
 
 $(TAILWIND):
 	mkdir -p bin
@@ -32,3 +32,10 @@ lint:
 
 run: build
 	./bin/yasssm
+
+# Project website (GitHub Pages) → site/dist, built from the app's own components and theme.
+site: $(TAILWIND)
+	go tool templ generate
+	rm -rf site/dist && mkdir -p site/dist/assets/css
+	$(TAILWIND) -i site/site.css -o site/dist/assets/css/site.css --minify
+	go run ./site/build

@@ -1,5 +1,7 @@
 # 🐍 yasssm
 
+Website: [yasssm.luizlab.com.br](https://yasssm.luizlab.com.br)
+
 Yet Another Simple Self-hosted Server Manager: a small web panel for one Linux server. One Go binary, server-rendered pages, no JavaScript, TOTP login.
 
 It shows and manages:
@@ -57,3 +59,7 @@ Approve the service once in the Tailscale admin console. It is then at `https://
 ## Credits
 
 UI built with [templ](https://templ.guide) and [shadcn-templ](https://shadcn-templ.com). Fonts: Inter and Fira Code (OFL). Icons: [Phosphor](https://phosphoricons.com). App icon: snake from [Noto Emoji](https://github.com/googlefonts/noto-emoji) (Apache 2.0).
+
+## License
+
+[GPL-3.0](LICENSE). The website in `site/` is built with `make site` and published to GitHub Pages on every push to `main`.
