@@ -156,3 +156,21 @@
     @apply bg-accent text-accent-foreground;
   }
 }
+
+/* Code blocks (views/code.go): chroma's token classes in the theme colors,
+   one hue per role so light and dark follow the variables above. Each line
+   is a flex row so wrapped text stays clear of the line number, and a
+   wrapped line hangs indented under its first character. */
+@layer components {
+  .code .line { display: flex; }
+  .code .cl { flex: 1 1 auto; min-width: 0; padding-left: 2ch; text-indent: -2ch; }
+  .code .ln { flex: none; margin-right: 1.5ch; color: var(--muted-foreground); opacity: 0.6; user-select: none; }
+  .code :is(.c, .ch, .cm, .c1, .cs, .cp, .cpf) { color: var(--muted-foreground); font-style: italic; }
+  .code :is(.ld, .na, .nv, .vc, .vg, .vi, .vm) { color: var(--muted-foreground); }
+  .code :is(.k, .kc, .kd, .kn, .kp, .kr, .kt, .nb, .bp, .nt, .ow, .gp, .gh) { color: var(--primary); }
+  .code :is(.s, .sa, .sb, .sc, .dl, .sd, .s2, .se, .sh, .si, .sx, .sr, .s1, .ss, .gi) { color: var(--ok); }
+  .code :is(.m, .mb, .mf, .mh, .mi, .il, .mo, .gt) { color: var(--warn); }
+  .code :is(.err, .gr, .gd, .ne) { color: var(--destructive); }
+  .code :is(.gh, .gu, .gs) { font-weight: 600; }
+  .code .ge { font-style: italic; }
+}

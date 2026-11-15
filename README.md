@@ -6,7 +6,7 @@ Yet Another Simple Self-hosted Server Manager: manage your Linux or macOS server
 
 It shows and manages:
 
-- Docker Compose stacks and their containers: start, stop, restart, pull and recreate, logs
+- Docker Compose stacks and their containers: start, stop, restart, pull and recreate, logs (the latest lines or one day, highlighted)
 - uptime, load, memory and disk
 - services: systemd on Linux, your launchd agents on macOS (read only)
 - cron: your crontab, the system cron files and (Linux) systemd timers, with the code they run (read only)

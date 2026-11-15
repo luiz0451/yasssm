@@ -47,9 +47,12 @@ type Dashboard struct {
 
 type Logs struct {
 	Container ContainerRow
-	Output    string
+	Lines     []host.LogLine
+	Err       string
 	N         int
 	Sizes     []int
+	Day       string // YYYY-MM-DD in server time; empty shows the latest lines of any day
+	Today     string
 }
 
 type Confirm struct {

@@ -318,12 +318,21 @@ func (a *app) logs(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, err)
 		return
 	}
-	n, err := strconv.Atoi(r.URL.Query().Get("n"))
+	q := r.URL.Query()
+	n, err := strconv.Atoi(q.Get("n"))
 	if err != nil {
 		n = 200
 	}
 	n = min(max(n, 10), 5000)
-	d := views.Logs{Container: containerRow(c), Output: host.ContainerLogs(ctx, c.Name, n), N: n, Sizes: []int{100, 200, 500, 1000, 5000}}
+	d := views.Logs{Container: containerRow(c), N: n, Sizes: []int{100, 200, 500, 1000, 5000}, Today: time.Now().Format(time.DateOnly)}
+	// A day is midnight to midnight in server time; any other value shows the latest lines.
+	var since, until time.Time
+	if t, err := time.ParseInLocation(time.DateOnly, q.Get("day"), time.Local); err == nil {
+		d.Day, since, until = t.Format(time.DateOnly), t, t.AddDate(0, 0, 1)
+	}
+	if d.Lines, err = host.ContainerLogs(ctx, c.Name, n, since, until); err != nil {
+		d.Err = err.Error()
+	}
 	a.render(w, r, http.StatusOK, views.LogsPage(a.page(r, "Logs: "+c.Name, "stacks"), d))
 }
 

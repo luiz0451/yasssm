@@ -3,16 +3,20 @@
 package host
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -77,13 +81,62 @@ func FindContainer(ctx context.Context, name string) (Container, error) {
 	return Container{}, ErrNotFound
 }
 
-// ContainerLogs returns the last n lines of a container's stdout and stderr.
-func ContainerLogs(ctx context.Context, name string, n int) string {
-	out, err := exec.CommandContext(ctx, "docker", "logs", "--tail", fmt.Sprint(n), "--timestamps", name).CombinedOutput()
-	if err != nil {
-		out = append(out, []byte("\n[yasssm] "+err.Error())...)
+// LogLine is one line of `docker logs --timestamps`. Time is zero when the
+// line carries no timestamp.
+type LogLine struct {
+	Time time.Time
+	Text string
+}
+
+// ContainerLogs returns the last n lines of a container's stdout and stderr,
+// or, when since is not zero, the last n lines logged between since and until.
+// On error the lines read so far come back with it; Docker's own message is
+// usually among them.
+func ContainerLogs(ctx context.Context, name string, n int, since, until time.Time) ([]LogLine, error) {
+	args := []string{"logs", "--timestamps", "--tail", strconv.Itoa(n)}
+	if !since.IsZero() {
+		// Docker applies --tail before --since/--until, so a window in the
+		// past needs the whole window; lastLines keeps the end of it.
+		args = []string{"logs", "--timestamps", "--tail", "all", "--since", unixArg(since), "--until", unixArg(until.Add(-time.Nanosecond))}
 	}
-	return string(out)
+	cmd := exec.CommandContext(ctx, "docker", append(args, name)...)
+	pr, pw := io.Pipe()
+	defer pr.Close() // unblocks the writers if lastLines stops early
+	cmd.Stdout, cmd.Stderr = pw, pw
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	go func() { pw.CloseWithError(cmd.Wait()) }()
+	return lastLines(pr, n)
+}
+
+func unixArg(t time.Time) string {
+	return fmt.Sprintf("%d.%09d", t.Unix(), t.Nanosecond())
+}
+
+// lastLines keeps the last n lines of r in a ring and splits off the
+// RFC 3339 timestamp Docker puts in front of each.
+func lastLines(r io.Reader, n int) ([]LogLine, error) {
+	ring := make([]string, n)
+	total := 0
+	sc := bufio.NewScanner(r)
+	sc.Buffer(nil, 1<<20)
+	for sc.Scan() {
+		ring[total%n] = sc.Text()
+		total++
+	}
+	kept := min(total, n)
+	lines := make([]LogLine, kept)
+	for i := range kept {
+		raw := ring[(total-kept+i)%n]
+		lines[i].Text = raw
+		if ts, text, ok := strings.Cut(raw, " "); ok {
+			if t, err := time.Parse(time.RFC3339Nano, ts); err == nil {
+				lines[i] = LogLine{Time: t, Text: text}
+			}
+		}
+	}
+	return lines, sc.Err()
 }
 
 var composeFiles = []string{"compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"}
