@@ -1,0 +1,4 @@
+bin/
+assets/css/output.css
+assets/js/
+*_templ.go

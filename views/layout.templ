@@ -1,0 +1,223 @@
+package views
+
+import (
+	"strconv"
+	"yasssm/components/alert"
+	"yasssm/components/badge"
+	"yasssm/components/button"
+	"yasssm/components/icon"
+)
+
+templ Layout(p Page) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="color-scheme" content="light dark"/>
+			if p.Refresh > 0 {
+				<meta http-equiv="refresh" content={ strconv.Itoa(p.Refresh) }/>
+			}
+			<title>{ p.Title } · yasssm</title>
+			<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+			<link rel="stylesheet" href="/assets/css/output.css"/>
+		</head>
+		<body class="min-h-svh bg-background font-sans text-foreground antialiased">
+			if p.Authed {
+				<header class="sticky top-0 z-10 border-b bg-card/95 backdrop-blur">
+					<nav class="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-2">
+						<a href="/" class="mr-3 flex shrink-0 items-baseline gap-2" title="Yet Another Simple Self-hosted Server Manager">
+							<span class="self-center text-lg leading-none" aria-hidden="true">🐍</span>
+							<span class="font-semibold">yasssm</span>
+							<span class="text-sm text-muted-foreground">{ p.Host }</span>
+						</a>
+						@navLink("/", "Stacks", p.Nav == "stacks", icon.Layers)
+						@navLink("/services", "Services", p.Nav == "services", icon.Cog)
+						@navLink("/cron", "Cron", p.Nav == "cron", icon.CalendarClock)
+						@navLink("/jobs", "Jobs", p.Nav == "jobs", icon.History)
+						<form method="post" action="/logout" class="ml-auto shrink-0">
+							@button.Button(button.Props{
+								Variant:    button.VariantGhost,
+								Size:       button.SizeIconSm,
+								Type:       button.TypeSubmit,
+								Attributes: templ.Attributes{"title": "Log out", "aria-label": "Log out"},
+							}) {
+								@icon.LogOut()
+							}
+						</form>
+					</nav>
+				</header>
+			}
+			<main class="mx-auto max-w-6xl space-y-6 p-4">
+				{ children... }
+			</main>
+		</body>
+	</html>
+}
+
+templ navLink(href, label string, active bool, ic func(...icon.Props) templ.Component) {
+	@button.Button(button.Props{Href: href, Size: button.SizeSm, Variant: navVariant(active), Class: "shrink-0"}) {
+		@ic(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+		{ label }
+	}
+}
+
+func navVariant(active bool) button.Variant {
+	if active {
+		return button.VariantSecondary
+	}
+	return button.VariantGhost
+}
+
+// actionIcon maps an action name to its icon.
+func actionIcon(action string) func(...icon.Props) templ.Component {
+	switch action {
+	case "logs":
+		return icon.ScrollText
+	case "up", "start":
+		return icon.Play
+	case "restart":
+		return icon.RotateCw
+	case "update":
+		return icon.CloudDownload
+	case "stop":
+		return icon.Square
+	}
+	return icon.CircleAlert
+}
+
+func actionVariant(danger bool) button.Variant {
+	if danger {
+		return button.VariantDestructive
+	}
+	return button.VariantOutline
+}
+
+// actionButton is an icon + label button, for stack-level actions.
+templ actionButton(l Link) {
+	@button.Button(button.Props{Href: l.URL, Size: button.SizeSm, Variant: actionVariant(l.Danger)}) {
+		@actionIcon(l.Action)(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+		{ l.Label }
+	}
+}
+
+// iconAction is an icon-only ghost button with a native tooltip, for table
+// rows; destructive ones only tint the icon.
+templ iconAction(l Link) {
+	@button.Button(button.Props{
+		Href:       l.URL,
+		Size:       button.SizeIconSm,
+		Variant:    button.VariantGhost,
+		Class:      dangerText(l.Danger),
+		Attributes: templ.Attributes{"title": l.Label, "aria-label": l.Label},
+	}) {
+		@actionIcon(l.Action)()
+	}
+}
+
+func dangerText(danger bool) string {
+	if danger {
+		return "text-destructive hover:bg-destructive/10 hover:text-destructive"
+	}
+	return ""
+}
+
+// toneBadge colors a state badge by tone (see stateTone): green ok, red bad,
+// amber transitional, neutral otherwise.
+templ toneBadge(tone, text string) {
+	switch tone {
+		case "ok":
+			@badge.Badge(badge.Props{Class: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"}) {
+				{ text }
+			}
+		case "bad":
+			@badge.Badge(badge.Props{Variant: badge.VariantDestructive}) {
+				{ text }
+			}
+		case "warn":
+			@badge.Badge(badge.Props{Class: "bg-amber-500/15 text-amber-700 dark:text-amber-400"}) {
+				{ text }
+			}
+		default:
+			@badge.Badge(badge.Props{Variant: badge.VariantSecondary}) {
+				{ text }
+			}
+	}
+}
+
+// statusDot is a traffic light for a Docker or systemd state; the state name
+// is the tooltip and the accessible label. Transitional states pulse.
+templ statusDot(state string) {
+	<span class={ "relative inline-flex size-2.5 shrink-0 rounded-full ring-3", dotColor(stateTone(state)) } title={ state } role="img" aria-label={ state }>
+		if stateTone(state) == "warn" {
+			<span class="absolute inline-flex size-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+		}
+	</span>
+}
+
+// statusLine is a dot followed by detail text, e.g. "Up 2 days (healthy)".
+templ statusLine(state, text string) {
+	<span class="inline-flex items-center gap-2">
+		@statusDot(state)
+		<span>{ text }</span>
+	</span>
+}
+
+func dotColor(tone string) string {
+	switch tone {
+	case "ok":
+		return "bg-emerald-500 ring-emerald-500/20"
+	case "bad":
+		return "bg-red-500 ring-red-500/20"
+	case "warn":
+		return "bg-amber-400 ring-amber-400/20"
+	}
+	return "bg-zinc-400 ring-zinc-400/20 dark:bg-zinc-500"
+}
+
+func stateTone(state string) string {
+	switch state {
+	case "running", "active", "done":
+		return "ok"
+	case "exited", "dead", "failed", "unhealthy":
+		return "bad"
+	case "restarting", "paused", "created", "activating", "reloading", "starting", "running…":
+		return "warn"
+	}
+	return ""
+}
+
+templ errorAlert(msg string) {
+	@alert.Alert(alert.Props{Variant: alert.VariantDestructive}) {
+		@icon.TriangleAlert()
+		@alert.Title() {
+			Error
+		}
+		@alert.Description() {
+			{ msg }
+		}
+	}
+}
+
+templ output(text string) {
+	<pre class="max-h-[75vh] overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs break-all whitespace-pre-wrap">{ text }</pre>
+}
+
+templ muted(text string) {
+	<p class="text-sm text-muted-foreground">{ text }</p>
+}
+
+// pageTitle is the h1 with a leading icon used on every page.
+templ pageTitle(ic func(...icon.Props) templ.Component, title string) {
+	<h1 class="flex items-center gap-2 text-xl font-semibold">
+		@ic(icon.Props{Class: "size-5 text-muted-foreground"})
+		{ title }
+	</h1>
+}
+
+templ backLink(href, label string) {
+	@button.Button(button.Props{Href: href, Variant: button.VariantGhost, Size: button.SizeSm, Class: "-ml-2"}) {
+		@icon.ArrowLeft(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+		{ label }
+	}
+}

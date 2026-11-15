@@ -1,0 +1,19 @@
+# User unit: ~/.config/systemd/user/yasssm.service (needs `loginctl enable-linger`).
+# Runs as the login user, who must be in the docker group.
+# Published on the tailnet by tailscale serve (see README), which terminates
+# HTTPS and proxies to the loopback listener below.
+[Unit]
+Description=yasssm (Yet Another Simple Self-hosted Server Manager)
+After=network-online.target
+# Stays inactive until `yasssm totp-init` has created the secret.
+ConditionPathExists=%h/.config/yasssm/totp
+
+[Service]
+ExecStart=%h/.local/bin/yasssm serve
+Environment=YASSSM_ADDR=127.0.0.1:8090
+Environment=YASSSM_SECURE_COOKIE=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

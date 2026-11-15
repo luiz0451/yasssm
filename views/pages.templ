@@ -1,0 +1,497 @@
+package views
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"yasssm/components/button"
+	"yasssm/components/card"
+	"yasssm/components/icon"
+	"yasssm/components/input"
+	"yasssm/components/label"
+	"yasssm/components/nativeselect"
+	"yasssm/components/progress"
+	"yasssm/components/table"
+	"yasssm/internal/host"
+)
+
+templ LoginPage(p Page, errMsg string) {
+	@Layout(p) {
+		<div class="flex min-h-[70svh] items-center justify-center">
+			@card.Card(card.Props{Class: "w-full max-w-sm"}) {
+				@card.Header() {
+					<div class="mb-2 text-4xl leading-none" aria-hidden="true">🐍</div>
+					@card.Title() {
+						yasssm · { p.Host }
+					}
+					@card.Description() {
+						Enter the 6-digit code from your authenticator app.
+					}
+				}
+				@card.Content() {
+					<form method="post" action="/login" class="space-y-4">
+						<div class="space-y-2">
+							@label.Label(label.Props{For: "code"}) {
+								Authenticator code
+							}
+							@input.Input(input.Props{
+								ID:       "code",
+								Name:     "code",
+								Required: true,
+								Class:    "h-11 text-center font-mono text-xl tracking-[0.4em]",
+								Attributes: templ.Attributes{
+									"inputmode":    "numeric",
+									"autocomplete": "one-time-code",
+									"pattern":      "[0-9]{6}",
+									"maxlength":    "6",
+									"autofocus":    true,
+									"aria-invalid": errMsg != "",
+								},
+							})
+							if errMsg != "" {
+								<p class="text-sm text-destructive">{ errMsg }</p>
+							}
+						</div>
+						@button.Button(button.Props{Type: button.TypeSubmit, Class: "w-full"}) {
+							@icon.KeyRound(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+							Log in
+						}
+					</form>
+				}
+			}
+		</div>
+	}
+}
+
+templ DashboardPage(p Page, d Dashboard) {
+	@Layout(p) {
+		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			@stat(icon.Clock, "Uptime", d.System.Uptime, -1)
+			@stat(icon.Cpu, fmt.Sprintf("Load · %d CPUs", d.System.CPUs), d.System.Load, -1)
+			@stat(icon.MemoryStick, "Memory", d.System.MemUsed+" / "+d.System.MemTotal, d.System.MemPct)
+			@stat(icon.HardDrive, "Disk /", d.System.DiskUsed+" / "+d.System.DiskSize, d.System.DiskPct)
+		</div>
+		<div class="flex flex-wrap items-baseline justify-between gap-2">
+			@pageTitle(icon.Layers, "Stacks")
+			<p class="text-sm text-muted-foreground">
+				{ strconv.Itoa(d.Stacks) } stacks · { strconv.Itoa(d.Running) }/{ strconv.Itoa(d.Total) } containers running
+			</p>
+		</div>
+		if d.Err != "" {
+			@errorAlert(d.Err)
+		}
+		for _, g := range d.Groups {
+			@groupCard(g)
+		}
+	}
+}
+
+// stat renders one system number; pct < 0 hides the progress bar.
+templ stat(ic func(...icon.Props) templ.Component, name, value string, pct int) {
+	@card.Card(card.Props{Size: card.SizeSm}) {
+		@card.Header() {
+			@card.Description(card.DescriptionProps{Class: "flex items-center gap-1.5"}) {
+				@ic(icon.Props{Class: "size-3.5"})
+				{ name }
+			}
+			@card.Title(card.TitleProps{Class: "text-lg tabular-nums"}) {
+				{ value }
+			}
+		}
+		if pct >= 0 {
+			@card.Content() {
+				@progress.Progress(progress.Props{Value: pct, Attributes: templ.Attributes{"title": strconv.Itoa(pct) + "%"}})
+			}
+		}
+	}
+}
+
+templ groupCard(g Group) {
+	@card.Card() {
+		@card.Header() {
+			@card.Title(card.TitleProps{Class: "flex flex-wrap items-center gap-2"}) {
+				@icon.Layers(icon.Props{Class: "size-4 text-muted-foreground"})
+				{ g.Title }
+				for _, c := range g.Counts {
+					<span class="inline-flex items-center gap-1.5 text-sm font-normal text-muted-foreground" title={ countLabel(c) }>
+						@statusDot(c.State)
+						if c.N > 0 {
+							{ strconv.Itoa(c.N) }
+						} else {
+							{ c.State }
+						}
+					</span>
+				}
+			}
+			<div data-slot="card-description" class="text-sm text-muted-foreground">
+				if g.Dir != "" {
+					<span class="font-mono text-xs">{ g.Dir }/<span class="text-foreground/80">{ strings.Join(g.Files, " + ") }</span></span>
+				} else {
+					{ g.Note }
+				}
+			</div>
+			if len(g.Actions) > 0 {
+				@card.Action(card.ActionProps{Class: "flex flex-wrap justify-end gap-1"}) {
+					for _, a := range g.Actions {
+						@actionButton(a)
+					}
+				}
+			}
+		}
+		@card.Content() {
+			if len(g.Rows) == 0 {
+				@muted("No containers yet. Up creates them.")
+			} else {
+				@table.Table() {
+					@table.Header() {
+						@table.Row() {
+							@table.Head() {
+								Container
+							}
+							@table.Head() {
+								Status
+							}
+							@table.Head(table.HeadProps{Class: "hidden md:table-cell"}) {
+								Image
+							}
+							@table.Head(table.HeadProps{Class: "hidden sm:table-cell"}) {
+								Ports
+							}
+							@table.Head(table.HeadProps{Class: "w-0"}) {
+								<span class="sr-only">Actions</span>
+							}
+						}
+					}
+					@table.Body() {
+						for _, r := range g.Rows {
+							@containerRow(r)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+templ containerRow(r ContainerRow) {
+	@table.Row() {
+		@table.Cell() {
+			<div class="flex items-center gap-2 font-medium">
+				@icon.Container(icon.Props{Class: "size-4 shrink-0 text-muted-foreground"})
+				{ r.Name }
+			</div>
+			if r.Service != "" && r.Service != r.Name {
+				<div class="pl-6 text-xs text-muted-foreground">{ r.Service }</div>
+			}
+		}
+		@table.Cell() {
+			<div class="text-sm">
+				@statusLine(r.State, r.Status)
+			</div>
+		}
+		@table.Cell(table.CellProps{Class: "hidden max-w-56 md:table-cell"}) {
+			<div class="truncate font-mono text-xs" title={ r.Image }>{ r.Image }</div>
+		}
+		@table.Cell(table.CellProps{Class: "hidden sm:table-cell"}) {
+			@portChips(r.Ports)
+		}
+		@table.Cell() {
+			<div class="flex justify-end gap-0.5">
+				@iconAction(Link{Action: "logs", Label: "Logs", URL: r.LogsURL})
+				for _, a := range r.Actions {
+					@iconAction(a)
+				}
+			</div>
+		}
+	}
+}
+
+templ portChips(ports []string) {
+	<div class="flex max-w-64 flex-wrap gap-1">
+		for _, pt := range ports {
+			<span class="rounded-md border px-1.5 py-0.5 font-mono text-xs whitespace-nowrap">{ pt }</span>
+		}
+	</div>
+}
+
+templ LogsPage(p Page, d Logs) {
+	@Layout(p) {
+		<div class="space-y-3">
+			@backLink("/", "Stacks")
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div class="flex flex-wrap items-center gap-3">
+					@pageTitle(icon.ScrollText, d.Container.Name)
+					<span class="text-sm text-muted-foreground">
+						@statusLine(d.Container.State, d.Container.Status)
+					</span>
+					<div class="flex gap-0.5">
+						for _, a := range d.Container.Actions {
+							@iconAction(a)
+						}
+					</div>
+				</div>
+				<form method="get" class="flex items-center gap-2">
+					@nativeselect.NativeSelect(nativeselect.Props{Name: "n", Size: nativeselect.SizeSm, Attributes: templ.Attributes{"aria-label": "Lines"}}) {
+						for _, n := range d.Sizes {
+							@nativeselect.Option(nativeselect.OptionProps{Value: strconv.Itoa(n), Selected: n == d.N}) {
+								{ strconv.Itoa(n) } lines
+							}
+						}
+					}
+					@button.Button(button.Props{Type: button.TypeSubmit, Size: button.SizeSm, Variant: button.VariantOutline}) {
+						@icon.RefreshCw(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+						Reload
+					}
+				</form>
+			</div>
+		</div>
+		@output(d.Output)
+	}
+}
+
+templ ConfirmPage(p Page, d Confirm) {
+	@Layout(p) {
+		@card.Card(card.Props{Class: "mx-auto max-w-2xl"}) {
+			<form method="post" action="/action" class="contents">
+				@card.Header() {
+					<div class={ "mb-2 flex size-10 items-center justify-center rounded-lg", templ.KV("bg-destructive/15 text-destructive", d.Danger), templ.KV("bg-muted", !d.Danger) }>
+						if d.Danger {
+							@icon.TriangleAlert(icon.Props{Class: "size-5"})
+						} else {
+							@actionIcon(d.Action)(icon.Props{Class: "size-5"})
+						}
+					</div>
+					@card.Title() {
+						{ d.Label } { d.Kind } <code class="font-mono">{ d.Name }</code>?
+					}
+					@card.Description(card.DescriptionProps{Class: "flex items-center gap-1.5"}) {
+						@icon.Terminal(icon.Props{Class: "size-3.5"})
+						This runs:
+					}
+				}
+				@card.Content() {
+					@output(commandLines(d.Commands))
+					<input type="hidden" name="kind" value={ d.Kind }/>
+					<input type="hidden" name="name" value={ d.Name }/>
+					<input type="hidden" name="action" value={ d.Action }/>
+				}
+				@card.Footer(card.FooterProps{Class: "justify-end gap-2"}) {
+					@button.Button(button.Props{Href: "/", Variant: button.VariantOutline}) {
+						Cancel
+					}
+					@button.Button(button.Props{Type: button.TypeSubmit, Variant: confirmVariant(d.Danger)}) {
+						@actionIcon(d.Action)(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+						{ d.Label }
+					}
+				}
+			</form>
+		}
+	}
+}
+
+// countLabel is "3 running", or just the state for a count-less one ("not created").
+func countLabel(c host.StateCount) string {
+	if c.N == 0 {
+		return c.State
+	}
+	return fmt.Sprintf("%d %s", c.N, c.State)
+}
+
+func commandLines(cmds []string) string {
+	var s string
+	for _, c := range cmds {
+		s += "$ " + c + "\n"
+	}
+	return s
+}
+
+func confirmVariant(danger bool) button.Variant {
+	if danger {
+		return button.VariantDestructive
+	}
+	return button.VariantDefault
+}
+
+templ JobPage(p Page, j host.JobView) {
+	@Layout(p) {
+		<div class="space-y-3">
+			@backLink("/jobs", "Jobs")
+			<div class="space-y-1">
+				<h1 class="flex items-center gap-2 text-xl font-semibold">
+					@jobIcon(j, "size-5")
+					{ j.Title }
+				</h1>
+				<p class="text-sm text-muted-foreground">
+					started { j.Started } · { j.Duration }
+					if !j.Done {
+						· refreshing every 2s
+					}
+				</p>
+				if j.Failed {
+					<p class="text-sm text-destructive">{ j.Status }</p>
+				}
+			</div>
+		</div>
+		@output(j.Output)
+		@button.Button(button.Props{Href: "/", Variant: button.VariantOutline}) {
+			@icon.Layers(icon.Props{Attributes: templ.Attributes{"data-icon": "inline-start"}})
+			Back to stacks
+		}
+	}
+}
+
+templ jobIcon(j host.JobView, size string) {
+	switch {
+		case !j.Done:
+			@icon.LoaderCircle(icon.Props{Class: size + " animate-spin text-amber-600 dark:text-amber-400"})
+		case j.Failed:
+			@icon.CircleX(icon.Props{Class: size + " text-destructive"})
+		default:
+			@icon.CircleCheck(icon.Props{Class: size + " text-emerald-600 dark:text-emerald-400"})
+	}
+}
+
+templ JobsPage(p Page, jobs []host.JobView) {
+	@Layout(p) {
+		@pageTitle(icon.History, "Jobs")
+		if len(jobs) == 0 {
+			@muted("No jobs since the last restart.")
+		} else {
+			@card.Card() {
+				@card.Content() {
+					@table.Table() {
+						@table.Header() {
+							@table.Row() {
+								@table.Head() {
+									Job
+								}
+								@table.Head() {
+									Started
+								}
+								@table.Head() {
+									Duration
+								}
+							}
+						}
+						@table.Body() {
+							for _, j := range jobs {
+								@table.Row() {
+									@table.Cell() {
+										<a class="flex items-center gap-2 font-medium underline-offset-4 hover:underline" href={ templ.SafeURL("/jobs/" + j.ID) }>
+											@jobIcon(j, "size-4")
+											{ j.Title }
+										</a>
+										if j.Failed {
+											<div class="pl-6 text-xs text-destructive">{ j.Status }</div>
+										}
+									}
+									@table.Cell(table.CellProps{Class: "font-mono text-xs"}) {
+										{ j.Started }
+									}
+									@table.Cell() {
+										{ j.Duration }
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+templ ServicesPage(p Page, lists []UnitList) {
+	@Layout(p) {
+		@pageTitle(icon.Cog, "Services")
+		for _, l := range lists {
+			@card.Card() {
+				@card.Header() {
+					@card.Title(card.TitleProps{Class: "flex items-center gap-2"}) {
+						if l.User {
+							@icon.Plug(icon.Props{Class: "size-4 text-muted-foreground"})
+						} else {
+							@icon.Server(icon.Props{Class: "size-4 text-muted-foreground"})
+						}
+						{ l.Title }
+						if l.Failed > 0 {
+							@toneBadge("bad", fmt.Sprintf("%d failed", l.Failed))
+						}
+					}
+					@card.Description() {
+						{ strconv.Itoa(len(l.Units)) } loaded units, failed first. Read only.
+					}
+				}
+				@card.Content() {
+					if l.Err != "" {
+						@errorAlert(l.Err)
+					}
+					if len(l.Units) > 0 {
+						@table.Table() {
+							@table.Header() {
+								@table.Row() {
+									@table.Head() {
+										Unit
+									}
+									@table.Head() {
+										Status
+									}
+									@table.Head(table.HeadProps{Class: "hidden sm:table-cell"}) {
+										Description
+									}
+								}
+							}
+							@table.Body() {
+								for _, u := range l.Units {
+									@table.Row() {
+										@table.Cell(table.CellProps{Class: "font-medium"}) {
+											{ u.Name }
+										}
+										@table.Cell() {
+											@statusLine(u.Active, u.Sub)
+										}
+										@table.Cell(table.CellProps{Class: "hidden text-muted-foreground sm:table-cell"}) {
+											{ u.Description }
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+templ CronPage(p Page, d Cron) {
+	@Layout(p) {
+		@pageTitle(icon.CalendarClock, "Cron")
+		@card.Card() {
+			@card.Header() {
+				@card.Title() {
+					User crontab
+				}
+				@card.Description() {
+					Read only. Edit with crontab -e on the server.
+				}
+			}
+			@card.Content() {
+				if d.Err != "" {
+					@errorAlert(d.Err)
+				} else if d.Crontab == "" {
+					@muted("No crontab for this user.")
+				} else {
+					@output(d.Crontab)
+				}
+			}
+		}
+	}
+}
+
+templ ErrorPage(p Page, msg string) {
+	@Layout(p) {
+		@errorAlert(msg)
+		@backLink("/", "Stacks")
+	}
+}
