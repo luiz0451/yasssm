@@ -1,59 +1,59 @@
 # 🐍 yasssm
 
-Yet Another Simple Self-hosted Server Manager. A single Go binary that renders a web UI on the server (templ + [shadcn-templ](https://shadcn-templ.com), no JavaScript) for one host:
+Yet Another Simple Self-hosted Server Manager: a small web panel for one Linux server. One Go binary, server-rendered pages, no JavaScript, TOTP login.
 
-- Docker Compose stacks found at `$YASSSM_STACKS_DIR/*/` (the config files Compose was started with, else a standard `compose.yaml`/`docker-compose.yml`) and their containers: up, restart, stop, pull & recreate
-- Container start / restart / stop and logs
-- System uptime, load, memory, disk
-- systemd services (system and user), read only, failed first
-- The user's crontab, read only
+It shows and manages:
 
-Every action goes through a confirmation page that shows the exact commands, then runs as a background job whose page refreshes until it finishes. Login is a TOTP code (RFC 6238); the server rejects reused codes and locks login for 5 minutes after 5 failures.
+- Docker Compose stacks and their containers: start, stop, restart, pull and recreate, logs
+- uptime, load, memory and disk
+- systemd services (read only)
+- cron: your crontab, the system cron files and systemd timers, with the code they run (read only)
+
+Every action asks for confirmation and shows the exact commands before running them.
 
 ## Build
 
+Needs Go. `make` downloads the Tailwind CLI on first use.
+
 ```sh
-make build-linux     # templ generate + tailwind + go build → bin/yasssm-linux-amd64
+make build-linux   # bin/yasssm-linux-amd64
 make test lint
 ```
 
-`make gen` downloads the Tailwind standalone CLI into `bin/` on first use.
+## Install
 
-The look is shadcn-templ with a custom theme in `assets/css/globals.css`: Inter for the interface and Fira Code only for machine text (paths, images, ports, commands, logs), both OFL and self-hosted in `assets/fonts/` because the CSP allows no font CDN, and [Phosphor](https://phosphoricons.com) duotone icons. `components/icon` carries only the icons the views use; `shadcn-templ add icon` would bring back Lucide, so add Phosphor icons by hand (see `icon_data.go`).
-
-## Install (as the login user, in the docker group)
+Run it as your user. The user must be in the `docker` group.
 
 ```sh
-install -m 755 yasssm-linux-amd64 ~/.local/bin/yasssm
-yasssm totp-init                      # prints a QR code (and the secret) for your authenticator app
+install -m 755 bin/yasssm-linux-amd64 ~/.local/bin/yasssm
+yasssm totp-init        # shows a QR code for your authenticator app
 cp deploy/yasssm.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now yasssm
+loginctl enable-linger  # keep it running after logout and start it at boot
 ```
 
-`yasssm totp-qr` shows the QR code of the current secret again, e.g. to enroll a second device.
+`yasssm totp-qr` shows the QR code again. `yasssm totp-init -force` makes a new secret.
 
-### Tailnet service
+## Access
 
-yasssm listens on loopback; [Tailscale Services](https://tailscale.com/kb/1552/tailscale-services) publish it with HTTPS under its own MagicDNS name. The host must be a tagged node and the user the Tailscale operator (`tailscale set --operator=$USER`).
+yasssm listens on `127.0.0.1:8090` only. To reach it from your devices, publish it on your tailnet with Tailscale. The server must be a tagged node and your user its operator (`sudo tailscale set --operator=$USER`):
 
 ```sh
 tailscale serve --service=svc:yasssm --https=443 --bg http://127.0.0.1:8090
 ```
 
-Approve `svc:yasssm` for the host in the admin console (Services) once; then it is `https://yasssm.<tailnet>.ts.net`. Remove with `tailscale serve clear svc:yasssm`.
+Approve the service once in the Tailscale admin console. It is then at `https://yasssm.<your-tailnet>.ts.net`. Don't expose it to the internet: Docker access is as good as root.
 
 ## Configuration
 
 | Variable | Default |
 |---|---|
 | `YASSSM_ADDR` | `127.0.0.1:8090` |
-| `YASSSM_STACKS_DIR` | `$HOME` |
-| `YASSSM_TOTP_FILE` | `$XDG_CONFIG_HOME/yasssm/totp` |
-| `YASSSM_SECURE_COOKIE` | unset; `1` marks the session cookie `Secure` (set when behind an HTTPS proxy) |
+| `YASSSM_STACKS_DIR` | `$HOME` (one stack per subfolder) |
+| `YASSSM_TOTP_FILE` | `~/.config/yasssm/totp` |
+| `YASSSM_SECURE_COOKIE` | set to `1` when behind HTTPS |
 
-`yasssm totp-init -force` replaces the secret; a running server picks it up on the next login.
+## Credits
 
-## Security notes
-
-Docker access is root-equivalent. Keep the listener on loopback behind `tailscale serve` (tailnet only, never Funnel). POSTs are protected by Go's `http.CrossOriginProtection` and `SameSite=Strict` cookies. The CSP forbids all scripts.
+UI built with [templ](https://templ.guide) and [shadcn-templ](https://shadcn-templ.com). Fonts: Inter and Fira Code (OFL). Icons: [Phosphor](https://phosphoricons.com). App icon: snake from [Noto Emoji](https://github.com/googlefonts/noto-emoji) (Apache 2.0).

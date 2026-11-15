@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 	"yasssm/components/button"
@@ -426,7 +427,111 @@ templ CronPage(p Page, d Cron) {
 				}
 			}
 		}
+		if len(d.System) > 0 {
+			@card.Card() {
+				@card.Header() {
+					@card.Title(card.TitleProps{Class: "flex items-center gap-2"}) {
+						@icon.HardDrives(icon.Props{Class: "size-4 text-muted-foreground"})
+						System cron
+					}
+					@card.Description() {
+						Read only. Tap a file to see its code. Root's own crontab needs root and is not shown.
+					}
+				}
+				@card.Content() {
+					<ul class="divide-y border-t">
+						for _, c := range d.System {
+							<li class="space-y-1.5 py-3">
+								<div class="font-mono text-sm font-medium">{ c.Title }</div>
+								<div class="text-xs text-muted-foreground">{ c.Note }</div>
+								for _, f := range c.Files {
+									@sourceView(path.Base(f.Path), f)
+								}
+							</li>
+						}
+					</ul>
+				}
+			}
+		}
+		for _, g := range d.Timers {
+			@card.Card() {
+				@card.Header() {
+					@card.Title(card.TitleProps{Class: "flex items-center gap-2"}) {
+						if g.User {
+							@icon.Plug(icon.Props{Class: "size-4 text-muted-foreground"})
+						} else {
+							@icon.HardDrives(icon.Props{Class: "size-4 text-muted-foreground"})
+						}
+						{ g.Title }
+					}
+					@card.Description() {
+						systemd timers, read only. Tap a timer to see what it runs.
+					}
+				}
+				@card.Content() {
+					if g.Err != "" {
+						@errorAlert(g.Err)
+					} else if len(g.Timers) == 0 {
+						@muted("No timers.")
+					}
+					<ul class="divide-y border-t">
+						for _, t := range g.Timers {
+							<li class="py-2">
+								<details class="group">
+									<summary class="flex cursor-pointer list-none items-center gap-2 py-1 [&::-webkit-details-marker]:hidden">
+										@icon.CaretDown(icon.Props{Class: "size-3.5 shrink-0 -rotate-90 text-muted-foreground transition-transform group-open:rotate-0"})
+										<span class="min-w-0 flex-1">
+											<span class="block truncate font-medium">{ strings.TrimSuffix(t.Unit, ".timer") }</span>
+											<span class="block truncate text-xs text-muted-foreground">
+												if t.Next != "" {
+													next { t.Next }
+												} else {
+													not scheduled
+												}
+											</span>
+										</span>
+									</summary>
+									<div class="space-y-2 pt-2 pl-5.5 text-xs">
+										for _, s := range t.Schedule {
+											<div><code class="font-mono">{ s }</code></div>
+										}
+										if t.Last != "" {
+											<div class="text-muted-foreground">last run { t.Last }</div>
+										}
+										if t.Command != "" {
+											<div class="text-muted-foreground">{ t.Activates } runs:</div>
+											@output(t.Command)
+										}
+										for _, s := range t.Sources {
+											@sourceView(s.Path, s)
+										}
+									</div>
+								</details>
+							</li>
+						}
+					</ul>
+				}
+			}
+		}
 	}
+}
+
+// sourceView is a collapsed code block: the script or prompt behind a scheduled entry.
+templ sourceView(label string, s host.Source) {
+	<details class="group/src">
+		<summary class="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
+			@icon.Scroll(icon.Props{Class: "size-3.5 shrink-0"})
+			<span class="truncate font-mono">{ label }</span>
+			@icon.CaretDown(icon.Props{Class: "size-3 shrink-0 -rotate-90 transition-transform group-open/src:rotate-0"})
+		</summary>
+		<div class="pt-2">
+			if s.Note != "" {
+				@muted(s.Note)
+			} else {
+				@output(s.Text)
+			}
+		</div>
+	</details>
 }
 
 templ ErrorPage(p Page, msg string) {

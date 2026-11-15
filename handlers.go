@@ -454,5 +454,16 @@ func (a *app) cron(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		d.Err = err.Error()
 	}
+	d.System = host.ReadSystemCron()
+	for _, user := range []bool{true, false} {
+		g := views.TimerGroup{Title: "System timers", User: user}
+		if user {
+			g.Title = "User timers"
+		}
+		if g.Timers, err = host.ListTimers(ctx, user); err != nil {
+			g.Err = err.Error()
+		}
+		d.Timers = append(d.Timers, g)
+	}
 	a.render(w, r, http.StatusOK, views.CronPage(a.page(r, "Cron", "cron"), d))
 }

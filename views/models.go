@@ -66,4 +66,15 @@ type UnitList struct {
 	Err    string
 }
 
-type Cron struct{ Crontab, Err string }
+type Cron struct {
+	Crontab, Err string
+	System       []host.CronDir
+	Timers       []TimerGroup // user timers first
+}
+
+type TimerGroup struct {
+	Title  string
+	User   bool
+	Timers []host.Timer
+	Err    string
+}
